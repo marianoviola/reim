@@ -1,0 +1,26 @@
+services:
+  reim-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reim-service
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_ONLINE_INSTANCES=${MAX_ONLINE_INSTANCES:-100}
+      - MAX_BATCH_OBSERVATIONS=${MAX_BATCH_OBSERVATIONS:-1000000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

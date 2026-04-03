@@ -1,0 +1,71 @@
+# =============================================================================
+# REIM Service — GitHub Actions Deploy
+# =============================================================================
+#
+# Triggers on push to main branch.
+# Runs tests, then deploys to the Hetzner VPS via SSH.
+#
+# Required GitHub Secrets:
+#   VPS_HOST     — IP address of the Hetzner VPS
+#   VPS_USER     — SSH user (default: deploy)
+#   VPS_SSH_KEY  — Private SSH key for the deploy user
+#
+# =============================================================================
+
+name: Deploy REIM
+
+on:
+  push:
+    branches: [main]
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  # ------------------------------------------
+  # 1. Run tests
+  # ------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest tests/ -v
+
+  # ------------------------------------------
+  # 2. Deploy to VPS
+  # ------------------------------------------
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/reim
+            ./deploy.sh
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            curl -sf http://localhost:8000/health | python3 -m json.tool
