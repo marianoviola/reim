@@ -68,8 +68,11 @@ curl http://localhost:8000/api/v1/online/my-platform/state
 
 Multi-dimensional review analysis with phase types and criteria ratings.
 
+`phase_type` is a free-form string — use whatever phases fit your domain. The
+`/phase-types` endpoint below returns an example preset for product reviews.
+
 ```bash
-# List default phase types
+# List example phase types (product-review lifecycle)
 curl http://localhost:8000/api/v1/multidim/phase-types
 
 # Fit model
@@ -153,6 +156,8 @@ This ensures only your application (via Docker network or domain) can reach the 
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `MAX_ONLINE_INSTANCES` | `100` | Max concurrent online models |
 | `MAX_BATCH_OBSERVATIONS` | `1000000` | Max observations per batch |
+| `REIM_VALUE_MIN` | `1.0` | Lower bound for rating/observation values |
+| `REIM_VALUE_MAX` | `5.0` | Upper bound for rating/observation values |
 | `CORS_ORIGINS` | `*` | Allowed CORS origins (comma-separated) |
 | `ALLOWED_HOSTS` | `*` | Access control — see above |
 
@@ -171,7 +176,8 @@ reim/
 │   ├── multidim.py      # Multi-dimensional structured analysis
 │   ├── generators.py    # Synthetic data generation
 │   ├── metrics.py       # Evaluation metrics
-│   └── baselines.py     # Baseline methods
+│   ├── baselines.py     # Baseline methods
+│   └── examples/        # Domain presets (e.g. product-review phases)
 ├── tests/
 │   ├── test_reim.py     # Library tests
 │   ├── test_api.py      # API endpoint tests

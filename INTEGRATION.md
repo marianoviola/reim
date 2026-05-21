@@ -134,7 +134,10 @@ The primary endpoint for multi-dimensional review analysis. Send reviews with ph
 
 ### 3.2 `GET /api/v1/multidim/phase-types`
 
-Returns the default phase types and their labels.
+Returns an *example* set of phase types and their labels (the product-review
+lifecycle from `reim.examples.product_review`). `phase_type` is a free-form
+string — define your own phases per domain; this endpoint is just a starting
+point.
 
 ### 3.3 `POST /api/v1/batch/fit` — Generic REIM
 
