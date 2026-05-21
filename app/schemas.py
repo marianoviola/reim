@@ -2,9 +2,21 @@
 API schemas — Pydantic models for request/response validation.
 """
 
+import os
+
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Literal
 from datetime import datetime
+
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+# Rating value bounds are domain-dependent (e.g. 1-5 stars, 0-10 scores).
+# Configure them via env vars at deploy time; defaults match a 1-5 scale.
+REIM_VALUE_MIN = float(os.getenv("REIM_VALUE_MIN", "1.0"))
+REIM_VALUE_MAX = float(os.getenv("REIM_VALUE_MAX", "5.0"))
 
 
 # ============================================================
@@ -14,7 +26,7 @@ from datetime import datetime
 class Observation(BaseModel):
     observer: str = Field(..., description="Observer/reviewer ID")
     system: str = Field(..., description="System/product ID")
-    value: float = Field(..., ge=1.0, le=5.0, description="Rating value (1-5)")
+    value: float = Field(..., ge=REIM_VALUE_MIN, le=REIM_VALUE_MAX, description="Rating value")
     timestamp: Optional[str] = Field(None, description="ISO timestamp")
 
 
@@ -63,7 +75,7 @@ class OnlineObserveRequest(BaseModel):
     instance_id: str
     observer: str
     system: str
-    value: float = Field(..., ge=1.0, le=5.0)
+    value: float = Field(..., ge=REIM_VALUE_MIN, le=REIM_VALUE_MAX)
     timestamp: Optional[str] = None
 
 class OnlineObserveBatchRequest(BaseModel):
@@ -93,7 +105,7 @@ class CriteriaRatingInput(BaseModel):
     """A single criteria rating within a review."""
     criteria_id: int = Field(..., alias="criteria_id")
     criteria_name: Optional[str] = None
-    rating: int = Field(..., ge=1, le=5)
+    rating: int = Field(..., ge=REIM_VALUE_MIN, le=REIM_VALUE_MAX)
 
     class Config:
         populate_by_name = True
@@ -104,8 +116,8 @@ class ReviewInput(BaseModel):
     id: Optional[int] = None
     observer_id: int = Field(..., alias="observer_id")
     system_id: int = Field(..., alias="system_id")
-    phase_type: Literal["pre_purchase", "purchase", "usage", "support", "closure"] = Field(..., alias="phase_type")
-    phase_rating: Optional[int] = Field(None, ge=1, le=5, alias="phase_rating")
+    phase_type: str = Field(..., min_length=1, alias="phase_type", description="Categorical phase/context label (domain-defined)")
+    phase_rating: Optional[int] = Field(None, ge=REIM_VALUE_MIN, le=REIM_VALUE_MAX, alias="phase_rating")
     created_at: Optional[str] = None
     ratings: List[CriteriaRatingInput] = []
 
