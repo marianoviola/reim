@@ -9,7 +9,7 @@ Endpoints:
   GET  /api/v1/online/{id}/state      — Get current estimates
   DELETE /api/v1/online/{id}          — Delete an online instance
   GET  /api/v1/online                 — List all online instances
-  GET  /api/v1/multidim/phase-types   — List configured phase types
+  GET  /api/v1/multidim/phase-types   — List example (product-review) phase types
   POST /api/v1/multidim/fit           — Fit MultiDimensionalREIM
   GET  /health                        — Health check
 
@@ -29,7 +29,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from reim import REIM
 from reim.online import OnlineREIM
-from reim.multidim import MultiDimensionalREIM, DEFAULT_PHASE_TYPES, DEFAULT_PHASE_LABELS
+from reim.multidim import MultiDimensionalREIM
+from reim.examples.product_review import (
+    PRODUCT_REVIEW_PHASE_TYPES,
+    PRODUCT_REVIEW_PHASE_LABELS,
+)
 from reim.baselines import SimpleAverage
 
 from app.schemas import (
@@ -273,10 +277,17 @@ async def online_list():
 
 @app.get("/api/v1/multidim/phase-types", tags=["Multi-Dimensional REIM"])
 async def multidim_phase_types():
-    """List the default phase types for multi-dimensional analysis."""
+    """
+    Return an example set of phase types for multi-dimensional analysis.
+
+    These are the retail / product-review lifecycle phases from
+    ``reim.examples.product_review`` — an illustrative example for one
+    domain, not a canonical or required set. The model accepts any
+    phase_type strings; configure your own per domain.
+    """
     return {
-        "phase_types": DEFAULT_PHASE_TYPES,
-        "labels": DEFAULT_PHASE_LABELS,
+        "phase_types": PRODUCT_REVIEW_PHASE_TYPES,
+        "labels": PRODUCT_REVIEW_PHASE_LABELS,
     }
 
 

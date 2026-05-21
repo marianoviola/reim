@@ -20,35 +20,15 @@ Hierarchy for REIM:
     Level 1: phase_score (avg of phase ratings), criteria_score (avg of criteria ratings)
     Level 2: individual phase ratings + individual criteria ratings
 
-The default phase types model a product lifecycle, but they are fully
-configurable — any set of categorical phases can be used.
+Phase types are not hardcoded: by default any categorical string is accepted
+as a phase type. Domain-specific presets (e.g. a product-review lifecycle)
+live in ``reim.examples``.
 """
 
 import numpy as np
 import pandas as pd
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
-
-
-# ============================================================
-# DEFAULT PHASE CONFIGURATION
-# ============================================================
-
-DEFAULT_PHASE_TYPES = [
-    "pre_purchase",
-    "purchase",
-    "usage",
-    "support",
-    "closure",
-]
-
-DEFAULT_PHASE_LABELS = {
-    "pre_purchase": "Pre-purchase / Discovery",
-    "purchase": "Purchase / Activation",
-    "usage": "Usage / Experience",
-    "support": "Support / Assistance",
-    "closure": "Closure / End-of-life",
-}
 
 
 # ============================================================
@@ -142,9 +122,12 @@ class MultiDimensionalREIM:
     Parameters
     ----------
     phase_types : list of str or None
-        Valid phase type labels. If None, uses DEFAULT_PHASE_TYPES.
+        Known phase type labels. If None (default), any phase_type string
+        found in the data is accepted.
     phase_labels : dict or None
-        Human-readable labels for phase types. If None, uses DEFAULT_PHASE_LABELS.
+        Human-readable labels keyed by phase type. If None (default), each
+        phase_type is used as its own label. Phases missing from the map
+        also fall back to the phase_type string.
     temporal_decay : float, default=0.98
         Decay factor per month. 0.98 = observations lose 2% weight per month.
         Set to 1.0 to disable.
@@ -168,8 +151,8 @@ class MultiDimensionalREIM:
         tol: float = 1e-6,
         suspicious_percentile: float = 10,
     ):
-        self.phase_types = phase_types or DEFAULT_PHASE_TYPES
-        self.phase_labels = phase_labels or DEFAULT_PHASE_LABELS
+        self.phase_types = phase_types
+        self.phase_labels = phase_labels or {}
         self.temporal_decay = temporal_decay
         self.method = method
         self.max_iter = max_iter
