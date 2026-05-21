@@ -76,8 +76,7 @@ def extract_observations_from_reviews(reviews_data: List[Dict[str, Any]]) -> Dic
         ...
     ]
 
-    Also accepts legacy field names (user_id, product_id, flow_type,
-    experience_rating, review_criteria_id) for backwards compatibility.
+    Only the canonical field names shown above are accepted.
 
     Returns a dict of DataFrames:
     {
@@ -88,14 +87,13 @@ def extract_observations_from_reviews(reviews_data: List[Dict[str, Any]]) -> Dic
     dimension_obs: Dict[str, list] = defaultdict(list)
 
     for review in reviews_data:
-        # Support both canonical and legacy field names
-        observer_id = str(review.get("observer_id") or review.get("user_id"))
-        system_id = str(review.get("system_id") or review.get("product_id"))
+        observer_id = str(review.get("observer_id"))
+        system_id = str(review.get("system_id"))
         timestamp = review.get("created_at", None)
 
         # Phase observation (phase_rating for this phase_type)
-        phase_type = review.get("phase_type") or review.get("flow_type")
-        phase_rating = review.get("phase_rating") or review.get("experience_rating")
+        phase_type = review.get("phase_type")
+        phase_rating = review.get("phase_rating")
 
         if phase_type and phase_rating is not None:
             dim_key = f"phase_{phase_type}"
@@ -108,7 +106,7 @@ def extract_observations_from_reviews(reviews_data: List[Dict[str, Any]]) -> Dic
 
         # Criteria observations
         for rating_entry in review.get("ratings", []):
-            criteria_id = rating_entry.get("criteria_id") or rating_entry.get("review_criteria_id")
+            criteria_id = rating_entry.get("criteria_id")
             criteria_name = rating_entry.get("criteria_name", f"criteria_{criteria_id}")
             rating_val = rating_entry.get("rating")
 
@@ -201,10 +199,10 @@ class MultiDimensionalREIM:
             Each dict represents a review with structure:
             {
                 "id": int,
-                "observer_id": int,        # or "user_id" (legacy)
-                "system_id": int,          # or "product_id" (legacy)
-                "phase_type": str,         # or "flow_type" (legacy)
-                "phase_rating": int,       # or "experience_rating" (legacy)
+                "observer_id": int,
+                "system_id": int,
+                "phase_type": str,
+                "phase_rating": int,
                 "created_at": str,         # ISO datetime
                 "ratings": [
                     {"criteria_id": int, "criteria_name": str, "rating": int},
@@ -376,43 +374,6 @@ class MultiDimensionalREIM:
             })
         return pd.DataFrame(rows)
 
-    # ---- Legacy compatibility aliases ----
-
-    @property
-    def product_scores_(self):
-        """Legacy alias for system_scores_."""
-        return self.system_scores_
-
-    @property
-    def user_reliability_(self):
-        """Legacy alias for observer_reliability_."""
-        return self.observer_reliability_
-
-    def get_product_report(self, product_id=None):
-        """Legacy alias for get_system_report."""
-        return self.get_system_report(product_id)
-
-    def get_product_detail(self, product_id):
-        """Legacy alias for get_system_detail (maps output keys for compatibility)."""
-        detail = self.get_system_detail(product_id)
-        # Map to legacy field names
-        return {
-            "product_id": detail["system_id"],
-            "overall_score": detail["overall_score"],
-            "sentiment_score": detail["phase_score"],
-            "criteria_score": detail["criteria_score"],
-            "sentiment": detail["phases"],
-            "criteria": detail["criteria"],
-        }
-
-    def get_user_report(self):
-        """Legacy alias for get_observer_report."""
-        return self.get_observer_report()
-
-    def flag_suspicious_users(self, percentile=None):
-        """Legacy alias for flag_suspicious_observers."""
-        return self.flag_suspicious_observers(percentile)
-
     # ---- Internal ----
 
     def _aggregate_scores(self, system_ids: list) -> pd.DataFrame:
@@ -445,10 +406,6 @@ class MultiDimensionalREIM:
             components = [v for v in [row["phase_score"], row["criteria_score"]] if v is not None]
             row["overall_score"] = np.mean(components) if components else None
 
-            # Legacy aliases
-            row["product_id"] = sid
-            row["sentiment_score"] = row["phase_score"]
-
             rows.append(row)
 
         return pd.DataFrame(rows)
@@ -460,7 +417,6 @@ class MultiDimensionalREIM:
             rels = list(dim_rels.values())
             rows.append({
                 "observer_id": observer,
-                "user_id": observer,  # legacy alias
                 "overall_reliability": np.mean(rels) if rels else 0,
                 "min_reliability": np.min(rels) if rels else 0,
                 "max_reliability": np.max(rels) if rels else 0,
