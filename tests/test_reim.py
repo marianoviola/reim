@@ -247,17 +247,18 @@ class TestMultiDimensionalREIM:
         with pytest.raises(ValueError):
             model.fit([])
 
-    def test_legacy_aliases(self, sample_reviews):
-        """Verify backwards-compatible aliases still work."""
+    def test_arbitrary_phase_types_accepted(self):
+        """Any phase_type string works without configuration, used as its own label."""
         from reim.multidim import MultiDimensionalREIM
+        reviews = [
+            {"observer_id": 1, "system_id": 1, "phase_type": "onboarding", "phase_rating": 4, "ratings": []},
+            {"observer_id": 2, "system_id": 1, "phase_type": "onboarding", "phase_rating": 5, "ratings": []},
+        ]
         model = MultiDimensionalREIM(method="bayesian")
-        model.fit(sample_reviews)
-        # Legacy aliases
-        assert model.product_scores_ is not None
-        assert model.user_reliability_ is not None
-        detail = model.get_product_detail("1")
-        assert "product_id" in detail
-        assert "sentiment_score" in detail
+        model.fit(reviews)
+        detail = model.get_system_detail("1")
+        assert "onboarding" in detail["phases"]
+        assert detail["phases"]["onboarding"]["label"] == "onboarding"
 
 
 # ============================================================
