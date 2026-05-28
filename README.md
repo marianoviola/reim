@@ -1,8 +1,62 @@
-# REIM Microservice
+# REIM
 
-**Reticular Epistemic Inference Model** — A microservice for inferring true system properties from distributed noisy observations.
+**Reticular Epistemic Inference Model.** A framework for inferring the true properties of a system from distributed, noisy, partial observations, by weighting each observation according to the inferred reliability of its source.
 
-## Quick Start
+---
+
+## The problem
+
+Whenever many observers report on the same thing (product ratings, sensor readings, evaluations, survey responses, model judgements) the naive answer is to average them. Averaging assumes every observer is equally reliable. They never are. Some are consistent and well calibrated, some are vague, some are adversarial, and some are reporting on a version of the system that no longer exists.
+
+REIM replaces the average with statistical inference. It estimates jointly the true property of each system and the reliability of each observer, then uses the second to weight the first. A reading from a consistently reliable source counts for more; a reading from a noisy or adversarial source counts for less. The model discovers which is which without being told.
+
+## Why not a simple average
+
+A simple average gives every voice equal weight, so a handful of careless or malicious observers can move the result at will. REIM instead learns a precision for each observer from the consistency of their observations, corrects for the age of an observation, and propagates estimates across a system hierarchy when one exists. Reliability is inferred from behaviour, not declared in advance.
+
+## Origins: the Reticular Theory of Reality
+
+REIM is derived from the Reticular Theory of Reality, a framework of ten axioms describing how an observer located inside a complex system must infer the system's properties from incomplete, local observations. The premise is general: every observer is internal to what they describe, their view is partial and noisy, and truth has to be reconstructed from the interaction of many limited viewpoints. The same condition holds for cosmological observation, scientific measurement, distributed sensing, and collective evaluation.
+
+The full derivation, from the ten axioms to the computational model, is in the technical report (see [Documentation](#documentation)).
+
+## How it works
+
+Each observer `u` reports `r = θ + noise`, where `θ` is the system's true property and the observer's reliability is the inverse of their noise variance. The algorithm alternates two closed-form steps until convergence:
+
+```
+θ_p   = Σ( α_u · r_u,p ) / Σ( α_u )      # precision-weighted estimate of the system's truth
+σ²_u  = mean( (r_u,p − θ_p)² )           # observer noise, so reliability is α_u = 1 / σ²_u
+```
+
+Convergence is guaranteed: each step is a closed-form maximiser of the log-likelihood, so the likelihood is monotonically non-decreasing and the process reaches a stationary point. A Bayesian variant adds priors, giving regularisation for sparsely observed systems and an uncertainty estimate per result.
+
+## Variants
+
+| Variant | For |
+|---|---|
+| Base (MLE / Bayesian) | standard batch estimation, with uncertainty quantification |
+| H-REIM | hierarchical systems, with bottom-up emergence and directional observability |
+| Online | real-time, incremental `O(1)` updates per new observation |
+| MultiDimensional | multi-phase, multi-criteria analysis with temporal decay |
+
+## Validated results
+
+On synthetic data with known ground truth:
+
+- Up to **93% RMSE reduction** versus simple averaging with 20% adversarial observers. As the adversarial share rises to 40% the REIM error stays nearly flat while simple averaging degrades linearly.
+- **Fake-source detection F1 of 85.7%** (100% precision, 75% recall) on the review-platform demo.
+- The online variant processes roughly **16,000 observations per second**.
+
+Full tables, baselines, and methodology are in the technical report.
+
+## Documentation
+
+The complete framework, from the ten axioms through the mathematics, the hierarchical extension, the online and multidimensional variants, and the experimental results, is documented in the technical report:
+
+> [Reticular Epistemic Inference Model (REIM): full technical report](<docs/Reticular Epistemic Inference Model (REIM).md>)
+
+## Quick start
 
 ```bash
 # With Docker Compose
@@ -13,187 +67,66 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-API docs at `http://localhost:8000/docs`.
+API docs at `http://localhost:8000/docs`. Tests with `pytest tests/ -v`.
 
-## Running Tests
+## API
 
-```bash
-pip install -r requirements.txt
-pytest tests/ -v
-```
-
-## API Endpoints
-
-### Batch REIM
-
-Fit a model on a complete set of observations. Best for periodic recalculation.
+**Batch** (fit a model on a complete set of observations; best for periodic recalculation):
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/batch/fit \
   -H "Content-Type: application/json" \
-  -d '{
-    "observations": [
-      {"observer": "user_1", "system": "product_a", "value": 4.5},
-      {"observer": "user_2", "system": "product_a", "value": 5.0}
-    ],
-    "method": "bayesian"
-  }'
+  -d '{"observations":[{"observer":"u1","system":"a","value":4.5},
+                       {"observer":"u2","system":"a","value":5.0}],
+       "method":"bayesian"}'
 ```
 
-### Online REIM
-
-Real-time incremental updates. Each observation updates estimates in O(1).
+**Online** (real-time, each observation updates estimates in `O(1)`):
 
 ```bash
-# Create instance
-curl -X POST http://localhost:8000/api/v1/online/init \
-  -H "Content-Type: application/json" \
-  -d '{"instance_id": "my-platform"}'
-
-# Send observation
-curl -X POST http://localhost:8000/api/v1/online/observe \
-  -H "Content-Type: application/json" \
-  -d '{
-    "instance_id": "my-platform",
-    "observer": "user_1",
-    "system": "product_a",
-    "value": 4.5
-  }'
-
-# Get estimates
-curl http://localhost:8000/api/v1/online/my-platform/state
+curl -X POST http://localhost:8000/api/v1/online/init    -d '{"instance_id":"my-platform"}'
+curl -X POST http://localhost:8000/api/v1/online/observe -d '{"instance_id":"my-platform","observer":"u1","system":"a","value":4.5}'
+curl      http://localhost:8000/api/v1/online/my-platform/state
 ```
 
-### Multi-Dimensional REIM
-
-Multi-dimensional review analysis with phase types and criteria ratings.
-
-`phase_type` is a free-form string — use whatever phases fit your domain. The
-`/phase-types` endpoint below returns an example preset for product reviews.
+**Multi-dimensional** (structured, multi-phase analysis; `phase_type` is a free-form domain label):
 
 ```bash
-# List example phase types (product-review lifecycle)
-curl http://localhost:8000/api/v1/multidim/phase-types
-
-# Fit model
-curl -X POST http://localhost:8000/api/v1/multidim/fit \
-  -H "Content-Type: application/json" \
-  -d '{
-    "reviews": [
-      {
-        "observer_id": 1,
-        "system_id": 1,
-        "phase_type": "usage",
-        "phase_rating": 4,
-        "created_at": "2026-03-01",
-        "ratings": [
-          {"criteria_id": 1, "criteria_name": "Display", "rating": 5},
-          {"criteria_id": 2, "criteria_name": "Battery", "rating": 3}
-        ]
-      }
-    ],
-    "criteria_metadata": {"1": "Display", "2": "Battery Life"}
-  }'
+curl http://localhost:8000/api/v1/multidim/phase-types   # example product-review lifecycle
+curl -X POST http://localhost:8000/api/v1/multidim/fit -H "Content-Type: application/json" -d '{ ... }'
 ```
 
-## Access Control
+## Configuration
 
-The service restricts connections via the `ALLOWED_HOSTS` environment variable. Only requests from authorized sources reach the API endpoints. The `/health` endpoint is always public (for Docker healthchecks and monitoring).
-
-### Configuration
-
-| Value | Effect |
-|-------|--------|
-| `*` (default) | Allow all connections — **development only** |
-| `docker` | Allow Docker internal networks (172.16.0.0/12, 10.0.0.0/8, 192.168.0.0/16) |
-| `example.com` | Allow requests with Host/Origin matching `*.example.com` |
-| `93.184.216.34` | Allow a specific IP address |
-| `172.18.0.0/16` | Allow a CIDR range |
-| `myapp` | Allow a Docker container hostname (resolved to IP) |
-
-Values can be combined, comma-separated:
-
-```env
-# Development
-ALLOWED_HOSTS=*
-
-# Docker containers only
-ALLOWED_HOSTS=docker
-
-# Production (your app + Docker internal)
-ALLOWED_HOSTS=docker,yourdomain.com
-
-# Specific IP + Docker
-ALLOWED_HOSTS=docker,93.184.216.34
-```
-
-Requests from `127.0.0.1` (loopback) are always allowed regardless of configuration.
-
-### Production deployment example
-
-```env
-ALLOWED_HOSTS=docker,yourdomain.com
-CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-```
-
-This ensures only your application (via Docker network or domain) can reach the REIM API. External requests will receive `403 Forbidden` unless they originate from an allowed source.
-
-### What gets blocked
-
-| Source | `ALLOWED_HOSTS=docker,yourdomain.com` | Result |
-|--------|---------------------------------------|--------|
-| `GET /health` from anywhere | ✅ | Always public |
-| App on same Docker network | ✅ | Matched by `docker` |
-| Request with matching Host header | ✅ | Matched by domain |
-| Random external IP | ❌ | 403 Forbidden |
-| Postman from your laptop (localhost) | ✅ | Loopback always allowed |
-
-## Environment Variables
+Configured through environment variables (see `.env.example`). Key values:
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+|---|---|---|
 | `PORT` | `8000` | Service port |
-| `LOG_LEVEL` | `INFO` | Logging level |
 | `MAX_ONLINE_INSTANCES` | `100` | Max concurrent online models |
 | `MAX_BATCH_OBSERVATIONS` | `1000000` | Max observations per batch |
-| `REIM_VALUE_MIN` | `1.0` | Lower bound for rating/observation values |
-| `REIM_VALUE_MAX` | `5.0` | Upper bound for rating/observation values |
-| `CORS_ORIGINS` | `*` | Allowed CORS origins (comma-separated) |
-| `ALLOWED_HOSTS` | `*` | Access control — see above |
+| `REIM_VALUE_MIN` / `REIM_VALUE_MAX` | `1.0` / `5.0` | Observation value bounds (domain-dependent) |
+| `CORS_ORIGINS` | `*` | Allowed CORS origins |
+| `ALLOWED_HOSTS` | `*` | Access control (IPs, CIDR, hostnames, domains, `docker`) |
 
-## Project Structure
+**Access control.** The service restricts connections via `ALLOWED_HOSTS`. Set it explicitly in production (for example `docker,yourdomain.com`) so only your application reaches the API; external requests receive `403`. The `/health` endpoint and loopback are always allowed. For defence in depth, combine with network-level restrictions.
+
+## Project structure
 
 ```
 reim/
-├── app/
-│   ├── main.py          # FastAPI endpoints
-│   ├── schemas.py       # Pydantic request/response models
-│   └── middleware.py     # Access control middleware
-├── reim/
-│   ├── model.py         # Batch REIM (MLE + Bayesian)
-│   ├── online.py        # Online REIM (incremental)
-│   ├── hierarchical.py  # H-REIM (multi-level)
-│   ├── multidim.py      # Multi-dimensional structured analysis
-│   ├── generators.py    # Synthetic data generation
-│   ├── metrics.py       # Evaluation metrics
-│   ├── baselines.py     # Baseline methods
-│   └── examples/        # Domain presets (e.g. product-review phases)
-├── tests/
-│   ├── test_reim.py     # Library tests
-│   ├── test_api.py      # API endpoint tests
-│   └── test_middleware.py # Access control tests
-├── Dockerfile
-├── docker-compose.yml
-├── pyproject.toml       # Pytest configuration
-├── INTEGRATION.md       # Integration guide
-├── LICENSE              # Proprietary license
-└── requirements.txt
+├── app/         # FastAPI: endpoints, schemas, access-control middleware
+├── reim/        # model: base, online, hierarchical, multidim, metrics, baselines
+├── tests/       # library, API, and middleware tests
+├── docs/        # technical report (the full framework)
+├── INTEGRATION.md
+└── Dockerfile / docker-compose.yml
 ```
 
-## Production Notes
+## License
 
-- **Access control** is enforced at the application level via `ALLOWED_HOSTS`. For defense in depth, also configure network-level restrictions (firewall rules, Docker network isolation, reverse proxy IP whitelisting).
-- **Online instances are in-memory.** They don't persist across container restarts.
-- **Single worker by default.** Use `--workers 1` or add shared state (Redis) for multi-worker.
-- **Batch endpoint is stateless.** Safe to scale horizontally.
-- **Recommended strategy:** Online REIM for real-time updates, Batch REIM nightly for full recalibration.
+Proprietary. Copyright 2026 Mariano Viola. All rights reserved. The source is published for reference and is not licensed for reuse. See [LICENSE](LICENSE).
+
+## Author
+
+REIM is designed and built by Mariano Viola, as part of ongoing work on inference and governance for AI-native systems. The theory behind it is the author's own.
