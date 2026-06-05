@@ -3,3 +3,21 @@ filterwarnings = [
     "ignore::DeprecationWarning:fastapi.*",
     "ignore::DeprecationWarning:starlette.*",
 ]
+
+[project]
+name = "reim"
+version = "0.1.0"
+description = "Reticular Epistemic Inference Model for reliability-weighted truth estimation from distributed observations."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+authors = [
+    { name = "Mariano Viola" }
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
