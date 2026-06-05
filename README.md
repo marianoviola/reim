@@ -130,7 +130,12 @@ reim/
 
 ## License
 
-Proprietary. Copyright 2026 Mariano Viola. All rights reserved. The source is published for reference and is not licensed for reuse. See [LICENSE](LICENSE).
+REIM uses a dual licensing structure:
+
+- Source code is licensed under the **GNU Affero General Public License v3.0 or later**. See [LICENSE](LICENSE).
+- Documentation, technical reports, diagrams, and explanatory theory text are licensed under **Creative Commons Attribution-NonCommercial 4.0 International** unless otherwise stated. See [LICENSE-DOCS.md](LICENSE-DOCS.md).
+
+Commercial licensing is available separately by written agreement with the author.
 
 ## Author
 
