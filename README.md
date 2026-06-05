@@ -39,6 +39,7 @@ Convergence is guaranteed: each step is a closed-form maximiser of the log-likel
 | H-REIM | hierarchical systems, with bottom-up emergence and directional observability |
 | Online | real-time, incremental `O(1)` updates per new observation |
 | MultiDimensional | multi-phase, multi-criteria analysis with temporal decay |
+| AuditREIM (design) | AI governance and audit of model/agent judgments |
 
 ## Validated results
 
@@ -55,6 +56,10 @@ Full tables, baselines, and methodology are in the technical report.
 The complete framework, from the ten axioms through the mathematics, the hierarchical extension, the online and multidimensional variants, and the experimental results, is documented in the technical report:
 
 > [Reticular Epistemic Inference Model (REIM): full technical report](<docs/Reticular Epistemic Inference Model (REIM).md>)
+
+A proposed governance extension is documented separately:
+
+> [AuditREIM: Governance and AI Judgment Audit](<docs/AuditREIM - Governance and AI Judgment Audit.md>)
 
 ## Quick start
 

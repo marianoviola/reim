@@ -8,12 +8,14 @@ Variants:
     OnlineREIM            — Incremental real-time updates
     HierarchicalREIM      — Multi-level systems with emergence and directional observability
     MultiDimensionalREIM  — Multi-dimensional structured review analysis
+    AuditREIM             — AI governance and judgment audit
 """
 
 from .model import REIM
 from .online import OnlineREIM
 from .hierarchical import HierarchicalREIM
 from .multidim import MultiDimensionalREIM
+from .audit import AuditREIM
 from .generators import SyntheticDataGenerator
 from .metrics import compute_metrics
 from .baselines import SimpleAverage, TrimmedMean
@@ -24,6 +26,7 @@ __all__ = [
     "OnlineREIM",
     "HierarchicalREIM",
     "MultiDimensionalREIM",
+    "AuditREIM",
     "SyntheticDataGenerator",
     "compute_metrics",
     "SimpleAverage",
